@@ -3,7 +3,11 @@
 #define PHOTO_SENSOR_PIN 4
 #define LED_PIN 16
 
+const int ON_THRESHOLD = 900;   // Темніше за це -> вмикаємо
+const int OFF_THRESHOLD = 1300; // Світліше за це -> вимикаємо
+
 uint16_t light_sensor_value[10];
+bool is_led_on = false;
 
 void setup() {
   Serial.begin(115200);
@@ -13,8 +17,7 @@ void setup() {
     delay(10);
   }
 
-  Serial.println("\n--- Система нічного освітлення запущена ---");
-
+  Serial.println("\n--- Система з гістерезисом запущена ---");
   pinMode(PHOTO_SENSOR_PIN, ANALOG);
   pinMode(LED_PIN, OUTPUT);
 }
@@ -27,20 +30,21 @@ void loop() {
     average_light_value += light_sensor_value[i];
     delay(10);
   }
-  
   average_light_value /= 10;
-  
-  Serial.printf("Середнє значення світла: %u\n", average_light_value);
 
-  // Якщо значення МАЛЕ — значить ТЕМНО
-  if (average_light_value < 1000) { 
-    digitalWrite(LED_PIN, HIGH); 
+  Serial.printf("AVG: %u | LED: %s\n", average_light_value, is_led_on ? "ON" : "OFF");
+
+  if (!is_led_on && average_light_value < ON_THRESHOLD) {
+    is_led_on = true;
+    digitalWrite(LED_PIN, HIGH);
     Serial.println("СТАН: ТЕМНО -> LED УВІМКНЕНО");
-  } else {
-    digitalWrite(LED_PIN, LOW); 
+  } 
+  else if (is_led_on && average_light_value > OFF_THRESHOLD) {
+    is_led_on = false;
+    digitalWrite(LED_PIN, LOW);
     Serial.println("СТАН: СВІТЛО -> LED ВИМКНЕНО");
   }
 
   Serial.println("-----------------------------------");
-  delay(1000); 
+  delay(1000);
 }
